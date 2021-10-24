@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import { Composer } from "micro-bot";
 import fetch from "node-fetch";
 import { Keyboard } from "telegram-keyboard";
 import regexp from 'node-regexp'
@@ -7,7 +7,7 @@ import { BOT_TOKEN, API_URI, usersDB } from "./config.js";
 import { GET_CATS_QUERY, GET_CHILDREN_CATEGORIES, GET_PRODUCTS_QUERY, GET_PRODUCT_QUERY,  } from "./queries.js";
 import { CREATE_EMPTY_CART_MUTATION, SET_BILLING_ADRESS_TO_CART_MUTATION, SET_SHIPPING_ADRESS_TO_CART_MUTATION, SET_GUEST_EMAIL_ON_CART_MUTATION, PLACE_ORDER_MUTATION } from './mutations.js';
 
-const bot = new Telegraf(BOT_TOKEN);
+const bot = new Composer();
 
 const placeOrder = async (userId) => {
     const res = await fetch(API_URI, {
@@ -220,7 +220,7 @@ bot.hears(/(?<=Имя:).*$/g, async ctx => {
     console.log(usersDB)
 })
 
-const re = regexp().start('firstname').global().multiline().toRegExp()
+const re = regexp().start('firstname:').global().multiline().toRegExp()
 
 bot.hears(re, async ctx => {
     const data = ctx.message.text.split('\n')
@@ -244,6 +244,7 @@ bot.hears(re, async ctx => {
 
 bot.hears(/(?<=Количество:).*$/g, async ctx => {
     const cart_id =  await createEmptyCart();
+    usersDB[ctx.chat.id] = {}
     usersDB[ctx.chat.id]["cart_id"] = cart_id
     ctx.reply(`Отлично! Вот id вашей корзины: ${cart_id}.\n Пожалуйста, введите 
     firstname:
@@ -348,4 +349,4 @@ bot.command('adress', async ctx => {
     ctx.reply('Введите пожалуйста адрес в формате: Адрес:\nУлица:\nГород:\nРегион:\nНомер региона:\nИндекс:\nНомер города:\nИндекс:')
 })
 
-start(bot)
+module.exports = bot

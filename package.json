@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js"
+    "start": "micro-bot"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@apollo/client": "^3.4.16",
     "jquery": "^3.6.0",
+    "micro-bot": "^2.5.3",
     "node-fetch": "^3.0.0",
     "node-regexp": "^0.1.1",
     "regex": "^0.1.1",
