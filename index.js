@@ -1,4 +1,4 @@
-import { Composer } from "micro-bot";
+import { Telegraf } from "telegraf";
 import fetch from "node-fetch";
 import { Keyboard } from "telegram-keyboard";
 import regexp from 'node-regexp'
@@ -7,7 +7,7 @@ import { BOT_TOKEN, API_URI, usersDB } from "./config.js";
 import { GET_CATS_QUERY, GET_CHILDREN_CATEGORIES, GET_PRODUCTS_QUERY, GET_PRODUCT_QUERY,  } from "./queries.js";
 import { CREATE_EMPTY_CART_MUTATION, SET_BILLING_ADRESS_TO_CART_MUTATION, SET_SHIPPING_ADRESS_TO_CART_MUTATION, SET_GUEST_EMAIL_ON_CART_MUTATION, PLACE_ORDER_MUTATION } from './mutations.js';
 
-const bot = new Composer();
+const bot = new Telegraf(BOT_TOKEN);
 
 const placeOrder = async (userId) => {
     const res = await fetch(API_URI, {
@@ -213,59 +213,76 @@ bot.action('AddToCart', async ctx => {
 })
 
 bot.hears(/(?<=Имя:).*$/g, async ctx => {
-    usersDB[ctx.chat.id] = {
-        fName:ctx.message.text.slice(4).split(' ')[0],
-        lName:ctx.message.text.slice(4).split(' ')[1]
+    try{
+        usersDB[ctx.chat.id] = {
+            fName:ctx.message.text.slice(4).split(' ')[0],
+            lName:ctx.message.text.slice(4).split(' ')[1]
+        }
+    }catch(e){
+        ctx.reply('Данные введены некоректно, попробуйте еще раз.')
     }
-    console.log(usersDB)
+    
 })
 
 const re = regexp().start('firstname:').global().multiline().toRegExp()
 
 bot.hears(re, async ctx => {
-    const data = ctx.message.text.split('\n')
-    usersDB[ctx.chat.id]['firstname'] = data[1].split(':')[1]
-    usersDB[ctx.chat.id]['lastname'] = data[1].split(':')[1]
-    usersDB[ctx.chat.id]['street'] = data[1].split(':')[1]
-    usersDB[ctx.chat.id]['city'] = data[2].split(':')[1]
-    usersDB[ctx.chat.id]['region'] = data[3].split(':')[1]
-    usersDB[ctx.chat.id]['region_number'] = data[4].split(':')[1]
-    usersDB[ctx.chat.id]['postcode'] = data[5].split(':')[1]
-    usersDB[ctx.chat.id]['country_number'] = data[6].split(':')[1]
-    usersDB[ctx.chat.id]['phone'] = data[7].split(':')[1]
-    usersDB[ctx.chat.id]['email'] = data[8].split(':')[1]
-
-    await setShippingAdress(ctx.chat.id)
-    await setBillingAdress(ctx.chat.id)
-    await setEmail(ctx.chat.id)
-
-    await placeOrder(ctx.chat.id)
+    try{
+        const data = ctx.message.text.split('\n')
+        usersDB[ctx.chat.id]['firstname'] = data[1].split(':')[1]
+        usersDB[ctx.chat.id]['lastname'] = data[1].split(':')[1]
+        usersDB[ctx.chat.id]['street'] = data[1].split(':')[1]
+        usersDB[ctx.chat.id]['city'] = data[2].split(':')[1]
+        usersDB[ctx.chat.id]['region'] = data[3].split(':')[1]
+        usersDB[ctx.chat.id]['region_number'] = data[4].split(':')[1]
+        usersDB[ctx.chat.id]['postcode'] = data[5].split(':')[1]
+        usersDB[ctx.chat.id]['country_number'] = data[6].split(':')[1]
+        usersDB[ctx.chat.id]['phone'] = data[7].split(':')[1]
+        usersDB[ctx.chat.id]['email'] = data[8].split(':')[1]
+    
+        await setShippingAdress(ctx.chat.id)
+        await setBillingAdress(ctx.chat.id)
+        await setEmail(ctx.chat.id)
+        await placeOrder(ctx.chat.id)
+    }catch(e){
+        ctx.reply('Данные введены некоректно, попробуйте еще раз.')
+    }
+    
 })
 
 bot.hears(/(?<=Количество:).*$/g, async ctx => {
-    const cart_id =  await createEmptyCart();
-    usersDB[ctx.chat.id] = {}
-    usersDB[ctx.chat.id]["cart_id"] = cart_id
-    ctx.reply(`Отлично! Вот id вашей корзины: ${cart_id}.\n Пожалуйста, введите 
-    firstname:
-    lastname:
-    company:
-    street:
-    city:
-    region:
-    region_id:
-    postcode:
-    country_code:
-    telephone:
-    email:`)
+    try{
+        const cart_id =  await createEmptyCart();
+        usersDB[ctx.chat.id] = {}
+        usersDB[ctx.chat.id]["cart_id"] = cart_id
+        ctx.reply(`Отлично! Вот id вашей корзины: ${cart_id}.\n Пожалуйста, введите 
+        firstname:
+        lastname:
+        company:
+        street:
+        city:
+        region:
+        region_id:
+        postcode:
+        country_code:
+        telephone:
+        email:`)
+    }catch(e){
+        ctx.reply('Данные введены некоректно, попробуйте еще раз.')
+    }
+    
 })
 
 bot.action(/(?<=Sku_).*$/g, async ctx => {
     const res = await getProduct(ctx.callbackQuery.data.slice(4))
-    const colors = res.configurable_options[0].values.reduce((acc, variant) => {
+    if(!res.configurable_options){
+        ctx.reply('Товар по вашему запросу не найден')
+        return
+    }
+    const colors = res.configurable_options?.length!=0 ? res?.configurable_options[0]?.values?.reduce((acc, variant) => {
         acc.push(variant.label)
         return acc
-    }, [])
+    }, []) : []
     const sizes = res.configurable_options[1].values.reduce((acc, variant) => {
         acc.push(variant.label)
         return acc
@@ -349,4 +366,4 @@ bot.command('adress', async ctx => {
     ctx.reply('Введите пожалуйста адрес в формате: Адрес:\nУлица:\nГород:\nРегион:\nНомер региона:\nИндекс:\nНомер города:\nИндекс:')
 })
 
-module.exports = bot
+start(bot)
