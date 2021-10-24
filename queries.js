@@ -1,3 +1,16 @@
+export const GET_SEARCH_PRODUCTS = `
+  query($name: String) {
+    products(filter: {
+      name: {
+        match: $name
+      }
+    }) {
+      items {
+        name
+      }
+    }
+  }
+`
 export const GET_CATS_QUERY = `
     query{
         categoryList{

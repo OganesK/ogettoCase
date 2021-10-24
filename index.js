@@ -4,7 +4,7 @@ import { Keyboard } from "telegram-keyboard";
 import regexp from 'node-regexp'
 
 import { BOT_TOKEN, API_URI, usersDB } from "./config.js";
-import { GET_CATS_QUERY, GET_CHILDREN_CATEGORIES, GET_PRODUCTS_QUERY, GET_PRODUCT_QUERY,  } from "./queries.js";
+import { GET_CATS_QUERY, GET_CHILDREN_CATEGORIES, GET_PRODUCTS_QUERY, GET_PRODUCT_QUERY, GET_SEARCH_PRODUCTS } from "./queries.js";
 import { CREATE_EMPTY_CART_MUTATION, SET_BILLING_ADRESS_TO_CART_MUTATION, SET_SHIPPING_ADRESS_TO_CART_MUTATION, SET_GUEST_EMAIL_ON_CART_MUTATION, PLACE_ORDER_MUTATION } from './mutations.js';
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -144,6 +144,20 @@ const getProducts = async (parentUid) => {
     return res;
 }
 
+const searchProducts = async (productName) => {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+
+    },
+    body: JSON.stringify({ query: GET_SEARCH_PRODUCTS, variables: {
+      name: productName
+    }})
+  }).then(r => r.json())
+
+  return res;
+}
+
 const getParentCategories = async (parentUid,is_anchor) => {
     console.log(is_anchor)
     if(Number(is_anchor) === 1){
@@ -164,6 +178,23 @@ const getParentCategories = async (parentUid,is_anchor) => {
     return res;
 }
 
+bot.command('searchAll', ctx => {
+  // searchProducts
+  ctx.reply('Введите запрос в виде SearchAll:*Искомый товар*')
+})
+
+bot.hears(/(?<=SearchAll:).*$/g, async ctx => {
+  try{
+      const res = await searchProducts(ctx.message.text.split(':')[1])
+      const formattedRes = res.data.products.items.reduce((acc,product) =>{
+          acc += product.name + '\n'
+      },'')
+      ctx.reply(formattedRes)
+  }catch(e){
+      ctx.reply('Данные введены некоректно, попробуйте еще раз.')
+  }
+  
+})
 
 const start = async (bot) => {
     const cats = await getCategories();
